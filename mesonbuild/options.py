@@ -876,7 +876,36 @@ class OptionStore:
         if key.name == 'prefix' and first_invocation and changed:
             self.reset_prefixed_options(old_value, new_value)
 
+        if changed:
+            self.set_dependents(key, new_value)
+
         return changed
+
+    def set_dependents(self, key: OptionKey, value: str):
+        if key.name != 'buildtype':
+            return
+        if value == 'plain':
+            opt = 'plain'
+            debug = False
+        elif value == 'debug':
+            opt = '0'
+            debug = True
+        elif value == 'debugoptimized':
+            opt = '2'
+            debug = True
+        elif value == 'release':
+            opt = '3'
+            debug = False
+        elif value == 'minsize':
+            opt = 's'
+            debug = True
+        else:
+            assert value == 'custom'
+            return
+        dkey = key.evolve(name='debug')
+        optkey = key.evolve(name='optimization')
+        self.options[dkey].set_value(debug)
+        self.options[optkey].set_value(opt)
 
     def set_option(self, key: OptionKey, new_value: str, first_invocation:bool = False):
         assert isinstance(key, OptionKey)
@@ -918,6 +947,9 @@ class OptionStore:
 
         if key.name == 'prefix' and first_invocation and changed:
             self.reset_prefixed_options(old_value, new_value)
+
+        if changed:
+            self.set_dependents(key, new_value)
 
         return changed
 
